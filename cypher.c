@@ -221,7 +221,7 @@ int cypher(void){
 		quit = 0; // Tracks when the user quits through the menu
 	
 	// Welcome Message
-	printf("Welcome to the cypher program.\n\n");
+	printf("\nWelcome to the cypher program.\n");
 	
 	// Run menu until user quits
 	while(!quit){
@@ -233,8 +233,7 @@ int cypher(void){
 		fgets(userInput, 1023, stdin);
 
 		while(!((choice = atoi(userInput))>0 && choice<4)){
-			printf("Please enter a valid number: ");
-			printf("\n");
+			printf("Please enter a valid number: \n");
 			fgets(userInput, 1023, stdin);
 		}
 			
