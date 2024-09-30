@@ -1,14 +1,21 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include "options.h"
 
 int main(int argc, char *argv[]){
+	// Set the UID back the user user's UID
+	if(setuid(getuid())){
+		printf("ERROR: Unable to properly set UID\n");
+		return 1;
+	}
+	
 	char userInput[1023]; // Used to take all user input
 	int choice = 0, // User's menu choice
 		quit = 0; // Tracks when the user quit's through the menu
 	
-	// Welcom Message
-	printf("Welcome to the C Multitool please select an option: ");
+	// Welcome Message
+	printf("Welcome to the C Multitool please select an option: \n");
 	
 	// Run menu until user quits
 	while(!quit){

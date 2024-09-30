@@ -12,3 +12,4 @@ directory.o: directory.c
 	
 clean:
 	rm *.o menu
+
