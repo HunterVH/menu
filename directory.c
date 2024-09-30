@@ -3,7 +3,15 @@
 #include <errno.h>
 
 int edit(void){
-	printf("Editing\n");
+	char userInput[1023];
+	int choice,
+		quit = 0;
+	
+	printf( "Please Choose An Option\n"
+			"1) Add User\n"
+			"2) Remove User\n"
+			"3) Modify User\n"
+			"4) Exit\n");
 }
 
 int view(void){	
@@ -20,7 +28,13 @@ int view(void){
 			"  First Name\t"
 			"    Position\t"
 			" Employee ID\t"
-			"Phone Number\n");
+			"Phone Number\n"
+			"------------\t"
+			"------------\t"
+			"------------\t"
+			"------------\t"
+			"------------\n");
+			
 	
 	if(!(directory = fopen("directory.txt", "r"))){
 		printf("Error opening directory.txt\n");
@@ -69,10 +83,10 @@ int directory(void){
 	printf("\nWelcome to the Employee Directory!\n");
 	
 	while(!quit){
-		printf("Please choose an option:\n");
-		printf("1) Edit Directory\n");
-		printf("2) View Directory\n");
-		printf("3) Exit Directory\n");
+		printf(	"Please choose an option:\n");
+				"1) Edit Directory\n"
+				"2) View Directory\n"
+				"3) Exit Directory\n");
 		
 		fgets(userInput, 1023, stdin);
 		
