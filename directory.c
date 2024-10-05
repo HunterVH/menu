@@ -1,6 +1,21 @@
+/*
+ * Author: Hunter Van Horn
+ * CS5740 - SetUID
+ * 
+ * This program allows a user to interact with a directory.
+ * To modify the directory the user must enter a password.
+ * 
+ */
+
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include "menu.h"
+#include "password.h"
+
 
 int addUser(void){
 	char userInput[1023];
@@ -18,7 +33,7 @@ int addUser(void){
 	fseek(writer, 0, SEEK_END);
 	
 	// Get the first name and write it to the document
-	printf("Enter the user's first name: ");
+	printf("Enter the user's last name: ");
 	fgets(userInput, 1023, stdin);
 	for(int i=0; userInput[i] != '\n'; i++){
 		fwrite(&userInput[i], sizeof(char), 1, writer);
@@ -27,7 +42,7 @@ int addUser(void){
 	fwrite(&comma, sizeof(char), 1, writer);
 	
 	// Get and write last name
-	printf("Enter the user's last name: ");
+	printf("Enter the user's first name: ");
 	fgets(userInput, 1023, stdin);
 	for(int i=0; userInput[i] != '\n'; i++){
 		fwrite(&userInput[i], sizeof(char), 1, writer);
@@ -62,6 +77,8 @@ int addUser(void){
 	
 	// Close the file stream
 	fclose(writer);
+	
+	return 0;
 }
 
 int removeUser(void){
@@ -72,10 +89,12 @@ int removeUser(void){
 	int i=1,
 		entry;
 	
+	// Open directory for reading
 	if(!(oldDirectory = fopen("directory.txt", "r"))){
 		printf("ERROR: reader for directory.txt failed to open\n");
 		return 1;
 	}
+	// Open copy for writing and reading, create file if non-existent
 	if(!(newDirectory = fopen("directory_copy.txt", "w+"))){
 		printf("ERROR: writer for directory.txt failed to open\n");
 		return 1;
@@ -84,12 +103,14 @@ int removeUser(void){
 	//Ask the user which entry they would like to remove
 	printf("Enter the # of the user you would like to remove: ");
 	fgets(userInput, 1023, stdin);
-	while(!(entry = atoi(userInput))){
+	while(!(entry = atoi(userInput)) || (entry<0)){
 		printf("Please enter a valid number: ");
 		fgets(userInput, 1023, stdin);
 	}
+	printf("%d\n", entry);
 	
-	while(i < entry){
+	//Write all entries up to the requested delted line
+	while(i < entry && !feof(oldDirectory)){
 		fread(&transfer, sizeof(char), 1, oldDirectory);
 		fwrite(&transfer, sizeof(char), 1, newDirectory);
 		if(transfer == '\n'){
@@ -97,25 +118,197 @@ int removeUser(void){
 		}
 	}
 	
-	// This makes a broken file DO NOT USE
-	//while(transfer != EOF){
-		//fread(&transfer, sizeof(char), 1, oldDirectory);
-		//fwrite(&transfer, sizeof(char), 1, newDirectory);
-	//}
+	// Test to see if their entry was valid
+	if(feof(oldDirectory)){
+		printf("ERROR: Your Entry was not found in the directory.txt\n");
+		return 1;
+	}
 	
+	// Skip Deleted Line
+	do{
+		fread(&transfer, sizeof(char), 1, oldDirectory);
+	}while(transfer != '\n');
+	
+	fread(&transfer, sizeof(char), 1, oldDirectory);
+	// Write all entries after the deleted line
+	while(!feof(oldDirectory)){
+		fwrite(&transfer, sizeof(char), 1, newDirectory);
+		fread(&transfer, sizeof(char), 1, oldDirectory);
+	}
+	
+	// delete the old directory file
+	remove("directory.txt");
+	// rename the edited directory file
+	rename("directory_copy.txt", "directory.txt");
+	
+	// Close file streams
 	fclose(oldDirectory);
 	fclose(newDirectory);
 	
+	return 0;
 }
 
 int modifyUser(void){
+	char userInput[1023];
+	FILE* oldDirectory;
+	FILE* newDirectory;
+	char transfer;
+	int entry,
+		i = 1;
 	
+	
+	
+	// Repeat the modification prompt until the user exits
+	while(1){
+		// Request which entry the user would like to modify
+		printf( "Please enter the entry # you would like to edit(enter "
+				"-1 to exit): ");
+		
+		// Get user entry input
+		fgets(userInput, 1023, stdin);
+		
+		// Verify a valid number
+		while(!(entry=atoi(userInput)) || entry < -1){
+			printf("Please enter a valid number: ");
+			fgets(userInput, 1023, stdin);
+		}
+		// Exit the program based on user input
+		if(entry == -1){
+			printf("Exiting\n");
+			break;
+		}
+		// Open file streams
+		else{
+			// Verify directory.txt can be opened
+			if(!(oldDirectory = fopen("directory.txt", "r"))){
+				printf("ERROR: Could not open directory.txt for reading");
+				return 1;
+			}
+			// Verify directory_modified.txt can be opened/created
+			if(!(newDirectory = fopen("directory_modified.txt", "w+"))){
+				printf("ERROR: Could not open directory_modified.txt");
+			}
+		}
+		
+		i=1;
+		while(i < entry){
+			fread(&transfer, sizeof(char), 1, oldDirectory);
+			fwrite(&transfer, sizeof(char), 1, newDirectory);
+			if(transfer == '\n'){
+				i++;
+			}
+		}
+		
+		// Ask the user which value they would like to modify
+		printf(	"Please choose a value to modify\n"
+				"1) Last Name\n"
+				"2) First Name\n"
+				"3) Position\n"
+				"4) Employee ID\n"
+				"5) Phone Number\n");
+				
+		fgets(userInput, 1023, stdin);
+		entry = atoi(userInput);
+		
+		while(!((entry = atoi(userInput))>0 && entry < 6)){
+			printf("Please enter a valid option(1-5): ");
+			fgets(userInput, 1023, stdin);
+		}
+		
+		// Copy all 
+		i=1;
+		while(i<entry){
+			fread(&transfer, sizeof(char), 1, oldDirectory);
+			fwrite(&transfer, sizeof(char), 1, newDirectory);
+			printf("Transfer: %c\n", transfer);
+			if(transfer == ','){
+				i++;
+			}
+		}
+		
+		// Read past the data that needs to be overwritten
+		fread(&transfer, sizeof(char), 1, oldDirectory);
+		while(transfer != '\n' && transfer != ','){
+			printf("Transfer: %c\n", transfer);
+			fread(&transfer, sizeof(char), 1, oldDirectory);
+		}
+		
+		// Request the necessary information from the user
+		switch(entry){
+			case 1:
+				printf("Enter the new Last Name value: ");
+				break;
+			case 2:
+				printf("Enter the new First Name value: ");
+				break;
+			case 3:
+				printf("Enter the new Position value: ");
+				break;
+			case 4:
+				printf("Enter the new Employee ID value: ");
+				break;
+			case 5:
+				printf("Enter the new Phone Number value: ");
+				break;
+		}
+		
+		// Get the user's new input value
+		fgets(userInput, 1023, stdin);
+		
+		// Write the user's new input
+		for(i=0; userInput[i] != '\n'; i++){
+			fwrite(&userInput[i], sizeof(char), 1, newDirectory);
+		}
+
+		// Write the remaining contents of the old directory to the
+		// new directory
+		while(!feof(oldDirectory)){
+			printf("%c\n", transfer);
+			fwrite(&transfer, sizeof(char), 1, newDirectory);
+			fread(&transfer, sizeof(char), 1, oldDirectory);
+		}
+		
+		// Close file streams
+		fclose(oldDirectory);
+		fclose(newDirectory);
+		
+		// Remove the old directory
+		remove("directory.txt");
+		// Rename the modified directory
+		rename("directory_modified.txt", "directory.txt");
+	}
+	
+	return 0;
 }
+
+
 
 int edit(void){
 	char userInput[1023];
 	int choice,
 		quit = 0;
+		
+	
+		
+	printf("Please enter the directory password: ");
+	fgets(userInput, 1023, stdin);
+	
+	if(password(userInput)){
+		printf("\nERROR: Incorrect Password\n");
+		return 1;
+	}
+	else{
+		if(setreuid(ruid, euid)){
+			printf("\nERROR: Could not set UID\n");
+			return 1;
+		}
+		if(setregid(rgid,egid)){
+			printf("ERROR: Unable to properly set GID\n");
+			return 1;
+		}
+		printf("UID: %d\tEUID: %d\n", getuid(), geteuid());
+		printf("GID: %d\tEGID: %d\n", getgid(), getegid());
+	}
 	
 	// Editing Menu
 	while(!quit){
@@ -179,47 +372,57 @@ int view(void){
 	// Verify the file stream opened
 	if(!(directory = fopen("directory.txt", "r"))){
 		printf("Error opening directory.txt\n");
-		printf("Error: %d\n", errno);
 		return 1;
 	}
 	
 	// Get the directory file size
 	fseek(directory, 0, SEEK_END);
 	fileSize = ftell(directory);
-	fseek(directory, sizeof(char)*3, SEEK_SET);
+	fseek(directory, 0, SEEK_SET);
 	
 	
-	
+	// Read the directory and output fromatted content to the user
 	while(ftell(directory) != fileSize){
-		if(newEntry){
-			printf("%3.3d)\t", entries);
+		if(newEntry){ // If at the beginning of a line print the line #
+			printf("%4.4d\t", entries);
 			entries++;
 			newEntry = 0;
 		}
-		do{
+		do{ // Read user values into the buffer, up to 1022 bytes
 			fread(&reader, sizeof(char), 1, directory);
 			buffer[i] = reader;
 			i++;
 		}while(reader != ',' && reader != '\n' && i<1022);
 		
-		buffer[i-1] = '\0';
-		printf("%12.12s", buffer);
+		// If an entry fills the buffer iterate the file stream to the
+		// next value as to avoid undefined behavior
+		if(i==1022){
+			while(reader != ',' && reader != '\n'){
+				fread(&reader, sizeof(char), 1, directory);
+			}
+		}
 		
-		if(reader == ','){
+		buffer[i-1] = '\0'; // Add a string terminater to end of string
+		printf("%12.12s", buffer); // Print formatted buffer value
+		
+		if(reader == ','){ // Enter a tab between directory values
 			printf("\t");
 		}
-		else if(reader == '\n'){
-			newEntry = 1;
+		else if(reader == '\n'){ // Enter a NL if at the end of line
+			newEntry = 1; // Identify moving to the next line
 			printf("\n", entries);
 		}
 		else{
-			printf("\nUNDEFINED BEHAVIOR\n");
+			printf("\nERROR: UNKNOWN VALUE PRESENT IN DIRECTORY\n");
+			return 1;
 		}
 		
 		i=0;
 	}
 	
 	fclose(directory);
+	
+	return 0;
 }
 
 int directory(void){
@@ -227,8 +430,10 @@ int directory(void){
 	int choice = 0,
 		quit = 0;
 	
+	// Welcome message
 	printf("\nWelcome to the Employee Directory!\n");
 	
+	// Menu persists until user exits
 	while(!quit){
 		printf(	"Please choose an option:\n"
 				"1) Edit Directory\n"
@@ -237,11 +442,13 @@ int directory(void){
 		
 		fgets(userInput, 1023, stdin);
 		
+		// Input validation
 		while(!(choice = atoi(userInput)) > 0 && choice < 4){
 			printf("Please enter a valid number: \n");
 			fgets(userInput, 1023, 0);
 		}
 		
+		// run function based on user input, or quit the menu
 		switch(choice){
 			case 1:
 				edit();
