@@ -1,0 +1,2 @@
+int rootPermissions();
+int defaultPermissions();

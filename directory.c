@@ -14,8 +14,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include "menu.h"
+#include "permission.h"
 #include "password.h"
-
 
 int addUser(void){
 	char userInput[1023];
@@ -24,13 +24,10 @@ int addUser(void){
 	FILE* writer;
 	
 	// Open and verify file stream
-	if(!(writer = fopen("directory.txt", "r+"))){
+	if(!(writer = fopen("directory.txt", "a"))){
 		printf("ERROR: Unable to open directory.txt\n", writer);
 		return 1;
 	}
-	
-	// Move file pointer to the end of the file to add on to the data
-	fseek(writer, 0, SEEK_END);
 	
 	// Get the first name and write it to the document
 	printf("Enter the user's last name: ");
@@ -109,7 +106,7 @@ int removeUser(void){
 	}
 	printf("%d\n", entry);
 	
-	//Write all entries up to the requested delted line
+	//Write all entries up to the requested deleted line
 	while(i < entry && !feof(oldDirectory)){
 		fread(&transfer, sizeof(char), 1, oldDirectory);
 		fwrite(&transfer, sizeof(char), 1, newDirectory);
@@ -156,8 +153,6 @@ int modifyUser(void){
 	int entry,
 		i = 1;
 	
-	
-	
 	// Repeat the modification prompt until the user exits
 	while(1){
 		// Request which entry the user would like to modify
@@ -174,7 +169,6 @@ int modifyUser(void){
 		}
 		// Exit the program based on user input
 		if(entry == -1){
-			printf("Exiting\n");
 			break;
 		}
 		// Open file streams
@@ -191,13 +185,31 @@ int modifyUser(void){
 		}
 		
 		i=1;
-		while(i < entry){
+		while(i < entry && !feof(oldDirectory)){
 			fread(&transfer, sizeof(char), 1, oldDirectory);
 			fwrite(&transfer, sizeof(char), 1, newDirectory);
 			if(transfer == '\n'){
 				i++;
 			}
 		}
+		
+		fread(&transfer, sizeof(char), 1, oldDirectory);
+		
+		// Check if the end of the file was reached
+		if(feof(oldDirectory)){
+			// Close file streams
+			fclose(oldDirectory);
+			fclose(newDirectory);
+			
+			// Remove the modified directory file
+			remove("directory_modified.txt");
+			
+			printf("\nERROR: No such entry exists\n");
+			return 1;
+		}
+		else{
+		}
+		
 		
 		// Ask the user which value they would like to modify
 		printf(	"Please choose a value to modify\n"
@@ -215,26 +227,42 @@ int modifyUser(void){
 			fgets(userInput, 1023, stdin);
 		}
 		
-		// Copy all 
+		// Copy all data up to the value the user wants to replace
 		i=1;
+		// Protects formatting against a blank first value
+		if(transfer == ','){
+			entry-=1;
+		}
+		
 		while(i<entry){
-			fread(&transfer, sizeof(char), 1, oldDirectory);
+			printf("I: %d\n", i);
+			printf("WRITING: %c\n", transfer);
 			fwrite(&transfer, sizeof(char), 1, newDirectory);
-			printf("Transfer: %c\n", transfer);
+			fread(&transfer, sizeof(char), 1, oldDirectory);
 			if(transfer == ','){
+				printf("\n");
 				i++;
 			}
 		}
 		
-		// Read past the data that needs to be overwritten
-		fread(&transfer, sizeof(char), 1, oldDirectory);
-		while(transfer != '\n' && transfer != ','){
-			printf("Transfer: %c\n", transfer);
+		// Adds the comma before the user's value
+		if(i>1){
+			printf("WRITING2: %c", transfer);
+			fwrite(&transfer, sizeof(char), 1, newDirectory);
 			fread(&transfer, sizeof(char), 1, oldDirectory);
 		}
 		
+		// Read past the data that needs to be overwritten
+		//fread(&transfer, sizeof(char), 1, oldDirectory);
+		while(transfer != '\n' && transfer != ','){
+			printf("SKIPPING: %c", transfer);
+			fread(&transfer, sizeof(char), 1, oldDirectory);
+		}
+		printf("\n");
+		//fwrite(&transfer, sizeof(char), 1, newDirectory);
+		
 		// Request the necessary information from the user
-		switch(entry){
+		switch(i){
 			case 1:
 				printf("Enter the new Last Name value: ");
 				break;
@@ -250,6 +278,8 @@ int modifyUser(void){
 			case 5:
 				printf("Enter the new Phone Number value: ");
 				break;
+			default:
+				printf("Enter your replacement value: ");
 		}
 		
 		// Get the user's new input value
@@ -257,13 +287,14 @@ int modifyUser(void){
 		
 		// Write the user's new input
 		for(i=0; userInput[i] != '\n'; i++){
+			printf("USERINPUT: %c", userInput[i]);
 			fwrite(&userInput[i], sizeof(char), 1, newDirectory);
 		}
 
 		// Write the remaining contents of the old directory to the
 		// new directory
 		while(!feof(oldDirectory)){
-			printf("%c\n", transfer);
+			printf("WRITINGF: %c\n", transfer);
 			fwrite(&transfer, sizeof(char), 1, newDirectory);
 			fread(&transfer, sizeof(char), 1, oldDirectory);
 		}
@@ -288,26 +319,11 @@ int edit(void){
 	int choice,
 		quit = 0;
 		
-	
-		
 	printf("Please enter the directory password: ");
 	fgets(userInput, 1023, stdin);
 	
-	if(password(userInput)){
-		printf("\nERROR: Incorrect Password\n");
+	if(passwordCheck(userInput)){
 		return 1;
-	}
-	else{
-		if(setreuid(ruid, euid)){
-			printf("\nERROR: Could not set UID\n");
-			return 1;
-		}
-		if(setregid(rgid,egid)){
-			printf("ERROR: Unable to properly set GID\n");
-			return 1;
-		}
-		printf("UID: %d\tEUID: %d\n", getuid(), geteuid());
-		printf("GID: %d\tEGID: %d\n", getgid(), getegid());
 	}
 	
 	// Editing Menu
@@ -342,6 +358,9 @@ int edit(void){
 				break;
 		}
 	}
+	
+	defaultPermissions();
+	
 	return 0;
 }
 
@@ -425,6 +444,28 @@ int view(void){
 	return 0;
 }
 
+int changePass(void){
+	char userInput[1023];
+	
+	printf("Please enter the current password: ");
+	fgets(userInput, 1023, stdin);
+	userInput[1023] = '\n';
+	
+	if(passwordCheck(userInput)){
+		return 1;
+	}
+	else{
+		printf("Please enter the new password: ");
+		fgets(userInput, 1023, stdin);
+	
+		// In case the user inputs more than 1022 characters
+		userInput[1023] = '\n';
+	
+		passwordChange(userInput);
+	}
+	return 0;
+}
+
 int directory(void){
 	char userInput[1023];
 	int choice = 0,
@@ -438,12 +479,13 @@ int directory(void){
 		printf(	"Please choose an option:\n"
 				"1) Edit Directory\n"
 				"2) View Directory\n"
-				"3) Exit Directory\n");
+				"3) Change Directory Password\n"
+				"4) Exit Directory\n");
 		
 		fgets(userInput, 1023, stdin);
 		
 		// Input validation
-		while(!(choice = atoi(userInput)) > 0 && choice < 4){
+		while(!(choice = atoi(userInput)) > 0 && choice < 5){
 			printf("Please enter a valid number: \n");
 			fgets(userInput, 1023, 0);
 		}
@@ -457,6 +499,9 @@ int directory(void){
 				view();
 				break;
 			case 3:
+				changePass();
+				break;
+			case 4:
 				quit = 1;
 				break;
 		}
