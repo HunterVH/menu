@@ -107,8 +107,6 @@ int vignereKey(char* fileName){
 	int wordLength = 0;
 	char letter;
 	char word[50];
-	char* itrack;
-	char* jtrack;
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("Failed to open file reader when finding a vignereKey.'n");
@@ -131,34 +129,41 @@ int vignereKey(char* fileName){
 	// Find repeated words
 	for(int i=0; i<fileSize; i++){
 		for(int j=i+1; j<fileSize; j++){
-			if(encryptedFile[i] = encryptedFile[j]){
-				*itrack = encryptedFile[i];
-				*jtrack = encryptedFile[j];
-				while(*itrack == *jtrack){
-					wordLength++;
-					//itrack++;
-					//jtrack++;
+			// When you find two characters that match
+			while(encryptedFile[i+wordLength] == encryptedFile[j+wordLength]){
+				// Increase word length
+				wordLength++;
+			}
+			// Only count words with more than 4 characters
+			if(wordLength >= 3){
+				for(int k=0; k<wordLength; k++){
+					word[k] = encryptedFile[i+k];
 				}
-				if(wordLength >= 4){
-					for(int k=0; k<wordLength; k++){
-						//word[k] = *(jtrack-wordLength+k);
-					}
 
-					wordFound = 1;
-					break;
-				}
+				wordFound = 1;
+				break;
+			}
+			else{
+				wordLength = 0;
 			}
 		}
+		// Print out the found word
 		if(wordFound){
-			break;
+			printf("\nThe Word: ");
+
+			for(int i=0; i<wordLength; i++){
+				printf("%c",word[i]);
+			}
+			wordLength = 0;
+			wordFound = 0;
 		}
 	}
 
-	printf("\nThe Word: ");
+	//printf("\nThe Word: ");
 
-	for(int i=0; i<wordLength; i++){
-		printf("%c",word[i]);
-	}
+	//for(int i=0; i<wordLength; i++){
+		//printf("%c",word[i]);
+	//}
 
 	if(fclose(fileReader)){
 		printf("Failed to close file reader after finding a vignere key.\n");
