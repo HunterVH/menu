@@ -100,6 +100,50 @@ int unshift(int shift, char* fileName){
 	return 0;
 }
 
+int count(char* word, char* fileName){
+	FILE* fileReader;
+	char* iter = word;
+	char letter;
+	int count = 0;
+	int location = 0;
+	int distance[5];
+
+	if(!(fileReader = fopen(fileName, "r"))){
+		printf("ERROR: Failed to open fileReader when counting words.\n");
+		return -1;
+	}
+
+	while(!feof(fileReader)){
+		iter = word;
+		fread(&letter, sizeof(char), 1, fileReader);
+		while(letter == *iter && !feof(fileReader)){
+			//printf("Same Letter: %c | %c\n", *iter, letter);
+			fread(&letter, sizeof(char), 1, fileReader);
+			iter++;
+			if(*iter == '\0'){
+				if(count >= 1){
+					//printf("Location: %d\n", ftell(fileReader));
+					location = ftell(fileReader);
+				}
+				else{
+					location = ftell(fileReader);
+				}
+				count++;
+			}
+		}
+	}
+	if(count > 3){
+		printf("The Word: %s | %d\n", word, count);
+	}
+
+	if(fclose(fileReader)){
+		printf("ERROR: Filed to close the fileReader when counting words.\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 int vignereKey(char* fileName){
 	int wordFound = 0;
 	FILE* fileReader;
@@ -109,7 +153,7 @@ int vignereKey(char* fileName){
 	char word[50];
 
 	if(!(fileReader = fopen(fileName, "r"))){
-		printf("Failed to open file reader when finding a vignereKey.'n");
+		printf("Failed to open file reader when finding a vignereKey.\n");
 		return 1;
 	}
 
@@ -120,6 +164,8 @@ int vignereKey(char* fileName){
 	fileSize /= (int)sizeof(char);
 	
 	char encryptedFile[fileSize];
+
+
 
 	for(int i=0; i<fileSize; i++){
 		fread(&letter, sizeof(char), 1, fileReader);
@@ -149,11 +195,11 @@ int vignereKey(char* fileName){
 		}
 		// Print out the found word
 		if(wordFound){
-			printf("\nThe Word: ");
-
-			for(int i=0; i<wordLength; i++){
-				printf("%c",word[i]);
-			}
+			word[wordLength] = '\0';
+			count(word, fileName);
+			//for(int i=0; i<wordLength; i++){
+				//printf("%c",word[i]);
+			//}
 			wordLength = 0;
 			wordFound = 0;
 		}
