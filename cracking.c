@@ -95,6 +95,16 @@ int primeFactorization(int number, int factors[]){
 	return 0;
 }
 
+int bigramCheck(char decryption[], int fileSize){
+	char topThree[3][2] = {{'T','H'}, {'H','E'}, {'I','N'}};
+
+	for(int i=0; i<3; i++){
+		for(int j=0; j<fileSize; j++){
+			// Check for bigrams
+		}
+	}
+}
+
 int count(char* word, char* fileName){
 	FILE* fileReader;
 	char* iter = word;
@@ -275,6 +285,10 @@ int columnarKey(char* fileName){
 		}
 	}
 
+	for(int i=0; i<10; i++){
+		printf("CM: %d\n",commonMultiples[i]);
+	}
+
 	// Decrypt the files based on common multiples of prime factors of the file size
 	for(int i=0; i<10; i++){
 		char unencrypted[fileSize];
@@ -442,10 +456,10 @@ int parseCrypto(char* fileName){
 
 int main(int argc, char *argv[]){
 	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
-	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
+	parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
-	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
 
 	return 0;
