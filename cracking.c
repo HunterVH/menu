@@ -2,31 +2,6 @@
 #include <string.h>
 #include <ctype.h>
 
-int topLetters(int letterDistrobution[]){
-	// Check if A,E,I,N,O,R,S,T
-	int top = 0;
-
-	for(int i=0; i<8; i++){
-		if(letterDistrobution[i] == 0 ||
-		   letterDistrobution[i] == 4 ||
-		   letterDistrobution[i] == 8 ||
-		   letterDistrobution[i] == 13 ||
-		   letterDistrobution[i] == 14 ||
-		   letterDistrobution[i] == 17 ||
-		   letterDistrobution[i] == 18 ||
-		   letterDistrobution[i] == 19){
-			top++;
-		}
-	}
-	if(top > 6){
-		printf("Letters Found: %d\n", top);
-		return 1;
-	}
-
-	printf("Letters Found: %d\n", top);
-	return 0;
-}
-
 int shiftNum(int letterDistro[]){
 	int checkForE = 0;
 	// Simple Shift
@@ -78,7 +53,7 @@ int unshift(int shift, char* fileName){
 			letter+=26;
 		}
 
-		printf("%c",letter);
+		//printf("%c",letter);
 
 		fwrite(&letter, sizeof(char), 1, fileWriter);
 	}
@@ -97,6 +72,26 @@ int unshift(int shift, char* fileName){
 		return 1;
 	}
 	
+	return 0;
+}
+
+int primeFactorization(int number, int factors[]){
+	// A list of the first 10 prime numbers
+	int primes[10] = {2,3,5,7,11,13,17,19,23,29};	
+	// An int to identify the current factor
+	int factorCount = 0;
+	
+	// Loop through the prime numbers to determine the factors
+	while(factorCount < 10 && number != 1){
+		if(number%primes[factorCount] == 0){
+			number /= primes[factorCount];
+			factors[factorCount] = primes[factorCount];
+		}
+		else{
+			factorCount++;
+		}
+	}
+
 	return 0;
 }
 
@@ -121,8 +116,8 @@ int count(char* word, char* fileName){
 			fread(&letter, sizeof(char), 1, fileReader);
 			iter++;
 			if(*iter == '\0'){
-				if(count >= 1){
-					//printf("Location: %d\n", ftell(fileReader));
+				if(count >= 1 && count <= 6){
+					distance[count-1] = ftell(fileReader)-location;
 					location = ftell(fileReader);
 				}
 				else{
@@ -133,7 +128,11 @@ int count(char* word, char* fileName){
 		}
 	}
 	if(count > 3){
-		printf("The Word: %s | %d\n", word, count);
+		//printf("The Word: %s | %d", word, count);
+		for(int i=0; i<count-1; i++){
+			//printf(" | %d", distance[i]);
+		}
+		//printf("\n");
 	}
 
 	if(fclose(fileReader)){
@@ -181,7 +180,7 @@ int vignereKey(char* fileName){
 				wordLength++;
 			}
 			// Only count words with more than 4 characters
-			if(wordLength >= 3){
+			if(wordLength >= 4){
 				for(int k=0; k<wordLength; k++){
 					word[k] = encryptedFile[i+k];
 				}
@@ -205,17 +204,131 @@ int vignereKey(char* fileName){
 		}
 	}
 
-	//printf("\nThe Word: ");
-
-	//for(int i=0; i<wordLength; i++){
-		//printf("%c",word[i]);
-	//}
-
 	if(fclose(fileReader)){
 		printf("Failed to close file reader after finding a vignere key.\n");
 		return 1;
 	}
+	return 0;
+}
+
+int columnarKey(char* fileName){
+	FILE* fileReader;
+	int fileSize;
+	// Tracks the number of prime factors
+	int numFactors = 0;
+	// Used when calculating common multiples
+	int offset = 0;
+	int primeFactors[10];
+	int commonMultiples[10];
+	char letter;
+
+	// Initialize the arrays to have default values
+	for(int i=0; i<10; i++){
+		primeFactors[i] = 0;
+		commonMultiples[i] = 1;
+	}
 	
+	// Attempt to open the file to read, declare an error and exit if unsuccessful
+	if(!(fileReader = fopen(fileName, "r"))){
+		printf("ERROR: File failed to open in columnarKey\n");
+		return -1;
+	}
+	
+	// Determine the number of characters in the file
+	fseek(fileReader, 0, SEEK_END);
+	fileSize = ftell(fileReader);
+	fseek(fileReader, 0, SEEK_SET);
+
+	// Char array to store the cipher text
+	char cipher[fileSize];
+
+	// Copy the text of the file to the array
+	for(int i=0; i<fileSize; i++){
+		fread(&letter, sizeof(char), 1, fileReader);
+		cipher[i] = letter;
+	}
+
+	// Find the prime factors
+	primeFactorization(fileSize, primeFactors);
+
+	// Calculate the number of factors
+	while(primeFactors[numFactors] != 0){
+		numFactors++;
+	}
+
+	// Calculate the Least Common Multiple of our factors
+	for(int i=0; i<numFactors; i++){
+		commonMultiples[0] *= primeFactors[i];
+	}
+
+	// Calculate the top nine least common multiples of the prime factors
+	for(int i=1; i<10; i++){
+		commonMultiples[i] = commonMultiples[(i-1+offset)/numFactors]*primeFactors[(i-1+offset)%numFactors];
+
+		// Verify the multiple is not a repeat
+		for(int j=0; j<i; j++){
+			if(commonMultiples[i] == commonMultiples[j]){
+				offset++;
+				i--;
+				break;
+			}
+		}
+	}
+
+	// Decrypt the files based on common multiples of prime factors of the file size
+	for(int i=0; i<10; i++){
+		char unencrypted[fileSize];
+		offset = fileSize/commonMultiples[i];
+		for(int j=0; j<fileSize/commonMultiples[i]; j++){
+			int iter = j;
+			for(int k=0; k<commonMultiples[i]; k++){
+				unencrypted[k+j*commonMultiples[i]] = cipher[iter];
+				iter+=offset;
+			}
+		}
+		for(int j=0; j<fileSize; j++){
+			printf("%c",unencrypted[j]);
+		}
+		printf("\n");
+		// Test the decrypted file by checking bi/trigrams
+		if(1 /*test for bi/trigrams*/){
+			//Ask the user if the decryption looks correct
+		}
+		fgetc(stdin);
+	}
+
+	// Attempt to close the file reader, report an error if unable to close the file
+	if(fclose(fileReader)){
+		printf("ERROR: File failed to close in columnarKey\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int topLetters(int letterDistrobution[]){
+	// Check if A,E,I,N,O,R,S,T
+	int top = 0;
+
+	for(int i=0; i<8; i++){
+		if(letterDistrobution[i] == 0 ||
+		   letterDistrobution[i] == 4 ||
+		   letterDistrobution[i] == 8 ||
+		   letterDistrobution[i] == 13 ||
+		   letterDistrobution[i] == 14 ||
+		   letterDistrobution[i] == 17 ||
+		   letterDistrobution[i] == 18 ||
+		   letterDistrobution[i] == 19){
+			top++;
+		}
+	}
+	if(top > 6){
+		printf("Letters Found: %d\n", top);
+		return 1;
+	}
+
+	printf("Letters Found: %d\n", top);
+	return 0;
 }
 
 int identifyCrypto(double letterPerc[], int letterDistro[], char* fileName){
@@ -231,13 +344,15 @@ int identifyCrypto(double letterPerc[], int letterDistro[], char* fileName){
 	topFivePerc += letterPerc[letterDistro[4]];
 	
 	// If top five percentages are lower than 35% it is likely not normal english distrobution
-	if(topFivePerc < .35){
+	printf("Distrobution: %f\n", topFivePerc);
+	if(topFivePerc < .4){
 		printf("This is likely a vignere cipher.\n");
 		vignereKey(fileName);
 		return 0;
 	}
 	else if(topLetters(letterDistro)){
 		printf("This is likely a permutation cipher.\n");
+		columnarKey(fileName);
 		return 0;
 	}
 	else{
@@ -275,7 +390,7 @@ int sortPercentages(double letterPercentage[], int letterDistrobution[]){
 
 	// Output the array
 	for(int i=0; i<26; i++){
-		printf("%c | ", letterDistrobution[i]+65);
+		//printf("%c | ", letterDistrobution[i]+65);
 	}
 
 	return 0;
@@ -326,7 +441,12 @@ int parseCrypto(char* fileName){
 }
 
 int main(int argc, char *argv[]){
-	parseCrypto("ciphertexts/ciphertext3.txt");
+	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
+	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
+	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
+	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
 
 	return 0;
 }
