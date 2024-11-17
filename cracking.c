@@ -336,11 +336,33 @@ int vignereKey(char* fileName){
 
 	int iter = 0;
 
+	int subSize = fileSize/factors[1]+1;
+
+	char subText[subSize];
+
 	// Use the factors to check IC of the subtexts
 	for(int i=0; i<fileSize; i+=factors[1]){
-		printf("%c", encryptedFile[i]);
+		subText[iter] = encryptedFile[i];
+		iter++;
 	}
 
+	float freqTot = 0;
+
+	for(int i=0; i<26; i++){
+		int letterFreq = 0;
+		for(int j=0; j<subSize; j++){
+			if(subText[j] = i+65){
+				letterFreq++;
+			}
+		}
+		freqTot += (letterFreq)*(letterFreq-1);
+	}
+
+	printf("\n| %f |\n", freqTot);
+
+	freqTot /= ((subSize)*(subSize-1))/26.00;
+
+	printf("\n| %f |\n", freqTot);
 
 
 	if(fclose(fileReader)){
