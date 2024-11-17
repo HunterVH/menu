@@ -95,14 +95,78 @@ int primeFactorization(int number, int factors[]){
 	return 0;
 }
 
-int bigramCheck(char decryption[], int fileSize){
-	char topThree[3][2] = {{'T','H'}, {'H','E'}, {'I','N'}};
+float trigramCheck(char decryption[], int fileSize){
+	char topTen[10][3] = {{'T','H','E'},{'A','N','D'},{'I','N','G'},{'E','N','T'},{'I','O','N'},
+			     {'H','E','R'},{'F','O','R'},{'T','H','A'},{'N','T','H'},{'I','N','T'}};
+	float expecFreq[10] = {.0187, .0078, .0069, .0036, .0033, .0042, .0028, .0037, .0032, .0029};
+	float trigramTotal = 0;
 
-	for(int i=0; i<3; i++){
+	for(int i=0; i<10; i++){
+		float trigram = 0.00;
 		for(int j=0; j<fileSize; j++){
-			// Check for bigrams
+			if(decryption[j] == topTen[i][0]){
+				j++;
+				if(decryption[j] == topTen[i][1]){
+					j++;
+					if(decryption[j] == topTen[i][2]){
+						trigram += 1;
+					}
+					else{
+						j--;
+					}
+				}
+				else{
+					j--;
+				}
+			}
 		}
+		// Calculate the freq of the given trigram
+		trigram /= (fileSize-2);
+		//printf("%c%c%c: %f\n", topTen[i][0],topTen[i][1],topTen[i][2], trigram);
+		// Calculate the difference between trigram freq and expected freq
+		trigram -= expecFreq[i];
+		if(trigram < 0){
+			trigram *= -1;
+		}
+		// Total all the trigram freq differences
+		trigramTotal += trigram;
 	}
+	printf("TriTotal: %f\n", trigramTotal);
+	return trigramTotal;
+}
+
+float bigramCheck(char decryption[], int fileSize){
+	char topThree[10][2] = {{'T','H'},{'H','E'},{'I','N'},{'E','R'},{'A','N'},
+			        {'R','E'},{'O','N'},{'A','T'},{'E','N'},{'N','D'}};
+	float expecFreq[10] = {.0356, .0308, .0243, .0205, .0199, .0185, .0176, .0149, .0145, .0135};
+	float bigramTotal = 0;
+
+	for(int i=0; i<10; i++){
+		float bigram = 0.00;
+		for(int j=0; j<fileSize; j++){
+			if(decryption[j] == topThree[i][0]){
+				j++;
+				if(decryption[j] == topThree[i][1]){
+					bigram += 1;
+				}
+				else{
+					j--;
+				}
+			}
+		}
+		// Calculate the specified bigram frequency
+		bigram /= (fileSize-1);
+		//printf("%c%c: %f\n", topThree[i][0],topThree[i][1], bigram);
+		// Calculate the difference between the bigram freq and the expected freq
+		bigram -= expecFreq[i];
+		if(bigram < 0){
+			bigram *= -1;
+		}
+		// Total the freq difference
+		bigramTotal += bigram;
+	}
+	printf("BiTotal: %f\n", bigramTotal);
+	return bigramTotal;
 }
 
 int count(char* word, char* fileName){
@@ -110,8 +174,7 @@ int count(char* word, char* fileName){
 	char* iter = word;
 	char letter;
 	int count = 0;
-	int location = 0;
-	int distance[5];
+	int location = 0; int distance[5];
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("ERROR: Failed to open fileReader when counting words.\n");
@@ -230,6 +293,7 @@ int columnarKey(char* fileName){
 	int offset = 0;
 	int primeFactors[10];
 	int commonMultiples[10];
+	float ngramFreq[10];
 	char letter;
 
 	// Initialize the arrays to have default values
@@ -251,6 +315,7 @@ int columnarKey(char* fileName){
 
 	// Char array to store the cipher text
 	char cipher[fileSize];
+	char decipher[10][fileSize];
 
 	// Copy the text of the file to the array
 	for(int i=0; i<fileSize; i++){
@@ -296,19 +361,32 @@ int columnarKey(char* fileName){
 		for(int j=0; j<fileSize/commonMultiples[i]; j++){
 			int iter = j;
 			for(int k=0; k<commonMultiples[i]; k++){
-				unencrypted[k+j*commonMultiples[i]] = cipher[iter];
+				//unencrypted[k+j*commonMultiples[i]] = cipher[iter];
+				decipher[i][k+j*commonMultiples[i]] = cipher[iter];
 				iter+=offset;
 			}
 		}
+		/*
 		for(int j=0; j<fileSize; j++){
 			printf("%c",unencrypted[j]);
 		}
+		*/
 		printf("\n");
-		// Test the decrypted file by checking bi/trigrams
-		if(1 /*test for bi/trigrams*/){
-			//Ask the user if the decryption looks correct
+		//decipher[i] = unencrypted;
+
+		//float check = trigramCheck(unencrypted, fileSize);
+		//printf("Check: %f\n", check);
+
+		ngramFreq[i] = bigramCheck(decipher[i], fileSize)+trigramCheck(decipher[i], fileSize);
+
+		printf("Check: %f | %f | %f\n", bigramCheck(unencrypted, fileSize), trigramCheck(unencrypted, fileSize), ngramFreq[i]);
+	}
+
+	for(int i=0; i<10; i++){
+		for(int j=0; j<fileSize; j++){
+			printf("%c", decipher[i][j]);
 		}
-		fgetc(stdin);
+		printf("\nFreq: %f\n", ngramFreq[i]);
 	}
 
 	// Attempt to close the file reader, report an error if unable to close the file
@@ -456,11 +534,39 @@ int parseCrypto(char* fileName){
 
 int main(int argc, char *argv[]){
 	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
-	parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
-	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
+	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
+	//
+	//
+	if(0){
+		FILE* filereader = fopen("ciphertexts/test.txt", "r");
+		int fileSize = 0;
+		int spaces = 0;
+		char letter;
+	
+		fseek(filereader, 0, SEEK_END);
+		fileSize = ftell(filereader);
+		fseek(filereader, 0, SEEK_SET);
+	
+		char text[fileSize];
+	
+		for(int i=0; i<fileSize; i++){
+			fread(&letter, sizeof(char), 1, filereader);
+			printf("%c", letter);
+			if(letter == ' ' || letter == '\n'){
+				spaces++;
+			}
+			else{
+				text[i] = toupper(letter);
+			}
+		}
+	
+		bigramCheck(text, (fileSize-spaces));
+		trigramCheck(text, fileSize-spaces);
+	}
 
 	return 0;
 }
