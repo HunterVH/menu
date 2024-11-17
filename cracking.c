@@ -2,6 +2,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#define ENGLISH_IC 0.068
+
 int shiftNum(int letterDistro[]){
 	int checkForE = 0;
 	// Simple Shift
@@ -270,6 +272,34 @@ int sortPercentages(float letterPercentage[], int letterDistrobution[], int sort
 	return 0;
 }
 
+float indexOfCoincidence(char text[], int fileSize, int factor){
+	int subSize = fileSize/factor+1;
+	int iter = 0;
+	float index;
+	char subText[subSize];
+
+	for(int i=0; iter<fileSize; i++){
+		subText[i] = text[iter];
+		iter += factor;
+	}
+
+	for(int i=0; i<26; i++){
+		int letterFreq = 0;
+		for(int j=0; j<subSize; j++){
+			if(subText[j] == i+65){
+				letterFreq++;
+			}
+		}
+		index += (letterFreq)*(letterFreq-1);
+	}
+
+	for(int i=0; i<subSize; i++){
+		printf("%c", subText[i]);
+	}
+
+	return index /= ((float)(subSize)*(float)(subSize-1));
+}
+
 int vignereKey(char* fileName){
 	int wordFound = 0;
 	FILE* fileReader;
@@ -343,6 +373,7 @@ int vignereKey(char* fileName){
 	// Use the factors to check IC of the subtexts
 	for(int i=0; i<fileSize; i+=factors[1]){
 		subText[iter] = encryptedFile[i];
+		printf("%c | %c\n", subText[iter], encryptedFile[i]);
 		iter++;
 	}
 
@@ -351,18 +382,22 @@ int vignereKey(char* fileName){
 	for(int i=0; i<26; i++){
 		int letterFreq = 0;
 		for(int j=0; j<subSize; j++){
-			if(subText[j] = i+65){
+			if(subText[j] == i+65){
 				letterFreq++;
 			}
 		}
 		freqTot += (letterFreq)*(letterFreq-1);
 	}
 
+	for(int i=0; i<subSize; i++){
+		printf("%c", subText[i]);
+	}
+
+	freqTot /= ((float)(subSize)*(float)(subSize-1));
+
 	printf("\n| %f |\n", freqTot);
 
-	freqTot /= ((subSize)*(subSize-1))/26.00;
-
-	printf("\n| %f |\n", freqTot);
+	indexOfCoincidence(encryptedFile, fileSize, factors[1]);
 
 
 	if(fclose(fileReader)){
