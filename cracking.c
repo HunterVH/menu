@@ -177,7 +177,7 @@ int count(char* word, char* fileName, int returnFactors[]){
 	char letter;
 	int count = 0;
 	int location = 0;
-	int distance[5];
+	int distance[5] = {0,0,0,0,0};
 	int factors[10] = {0,0,0,0,0,0,0,0,0,0};
 
 	if(!(fileReader = fopen(fileName, "r"))){
@@ -206,48 +206,27 @@ int count(char* word, char* fileName, int returnFactors[]){
 	}
 	if(count > 3){
 		printf("The Word: %s | %d", word, count);
-		for(int i=0; i<count-1; i++){
-			printf("\n| %d |", distance[i]);
-			primeFactorization(distance[i], factors);
-			
-			printf("\nPRIMES: ");
-			for(int j=0; j<10; j++){
-				printf("%d | ", factors[j]);
-			}
-			printf("\nRETURNED: ");
-			for(int j=0; j<10; j++){
-				printf("%d | ", returnFactors[j]);
-			}
-
-			// Eliminate non-common prime factors
-			if(i == 0){
-				for(int j=0; j<10; j++){
-					returnFactors[j] = factors[j];
-					//printf("\nTest: %d\n", returnFactors[j]);
-				}
-			}
-			else{
-				int k=0;
-				for(int j=0; j<10 && returnFactors[k] != 0; j++){
-					if(factors[j] == returnFactors[k]){
-						k++;
-					}
-					else if(factors[j] > returnFactors[k]){
-						//printf("\nTEST: %d | %d\n", factors[j], returnFactors[k]);
-						for(int temp = k; temp<9; temp++){
-							returnFactors[temp] = returnFactors[temp+1];
-						}
-						factors[9] = 0;
-						j--;
-					}
-				}
-			}
-			printf("\nFACTORS: ");
-			for(int j=0; j<10; j++){
-				printf("%d | ", returnFactors[j]);
-			}
+		for(int i=0; i<5; i++){
+			printf("| %d ", distance[i]);
 		}
 		printf("\n");
+		int min = distance[0];
+		int iter = 0;
+		for(int i=1; i<count-1; i++){
+			min = (min < distance[i]) ? min : distance[i];
+		}
+		for(int i=2; i<min && iter<10; i++){
+			if(!(distance[0]%i + distance[1]%i + distance[2]%i + distance[3]%i + distance[4]%i)){
+				returnFactors[iter] = i;
+				iter++;
+			}
+		}
+		//Find 10 factors
+		//
+		for(int i=0; i<10; i++){
+			printf("| %d ", returnFactors[i]);
+		}
+		printf("\nMIN: %d\n", min);
 
 		return 1;
 	}
@@ -299,7 +278,7 @@ int vignereKey(char* fileName){
 	char letter;
 	char word[50];
 	int distance;
-	int primeFactors[10] = {0,0,0,0,0,0,0,0,0,0};
+	int factors[10] = {0,0,0,0,0,0,0,0,0,0};
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("Failed to open file reader when finding a vignereKey.\n");
@@ -345,11 +324,24 @@ int vignereKey(char* fileName){
 		// Print out the found word
 		if(wordFound){
 			word[wordLength] = '\0';
-			count(word, fileName, primeFactors);
+			if(count(word, fileName, factors)){
+				break;
+			}
 			wordLength = 0;
 			wordFound = 0;
 		}
 	}
+
+	printf("\n");
+
+	int iter = 0;
+
+	// Use the factors to check IC of the subtexts
+	for(int i=0; i<fileSize; i+=factors[1]){
+		printf("%c", encryptedFile[i]);
+	}
+
+
 
 	if(fclose(fileReader)){
 		printf("Failed to close file reader after finding a vignere key.\n");
@@ -609,9 +601,9 @@ int parseCrypto(char* fileName){
 }
 
 int main(int argc, char *argv[]){
-	parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
+	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
-	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
+	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
 	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
