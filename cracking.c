@@ -52,9 +52,6 @@ int unshift(int shift, char* fileName){
 		if(letter < 65){
 			letter+=26;
 		}
-
-		//printf("%c",letter);
-
 		fwrite(&letter, sizeof(char), 1, fileWriter);
 	}
 
@@ -80,15 +77,24 @@ int primeFactorization(int number, int factors[]){
 	int primes[10] = {2,3,5,7,11,13,17,19,23,29};	
 	// An int to identify the current factor
 	int factorCount = 0;
+	int primeCount = 0;
+
+	//printf("\nnumber: %d\n", number);
 	
 	// Loop through the prime numbers to determine the factors
-	while(factorCount < 10 && number != 1){
-		if(number%primes[factorCount] == 0){
-			number /= primes[factorCount];
-			factors[factorCount] = primes[factorCount];
+	while(primeCount < 10 && number != 1){
+		if(number%primes[primeCount] == 0){
+			//printf("| %d | %d | ", number, primes[primeCount]);
+			number /= primes[primeCount];
+			factors[factorCount] = primes[primeCount];
+			while(number%primes[primeCount] == 0){
+				//printf("%d | %d ", number, primes[primeCount]);
+				number /= primes[primeCount];
+			}
+			factorCount++;
 		}
 		else{
-			factorCount++;
+			primeCount++;
 		}
 	}
 
@@ -122,7 +128,6 @@ float trigramCheck(char decryption[], int fileSize){
 		}
 		// Calculate the freq of the given trigram
 		trigram /= (fileSize-2);
-		//printf("%c%c%c: %f\n", topTen[i][0],topTen[i][1],topTen[i][2], trigram);
 		// Calculate the difference between trigram freq and expected freq
 		trigram -= expecFreq[i];
 		if(trigram < 0){
@@ -131,7 +136,6 @@ float trigramCheck(char decryption[], int fileSize){
 		// Total all the trigram freq differences
 		trigramTotal += trigram;
 	}
-	printf("TriTotal: %f\n", trigramTotal);
 	return trigramTotal;
 }
 
@@ -156,7 +160,6 @@ float bigramCheck(char decryption[], int fileSize){
 		}
 		// Calculate the specified bigram frequency
 		bigram /= (fileSize-1);
-		//printf("%c%c: %f\n", topThree[i][0],topThree[i][1], bigram);
 		// Calculate the difference between the bigram freq and the expected freq
 		bigram -= expecFreq[i];
 		if(bigram < 0){
@@ -165,16 +168,17 @@ float bigramCheck(char decryption[], int fileSize){
 		// Total the freq difference
 		bigramTotal += bigram;
 	}
-	printf("BiTotal: %f\n", bigramTotal);
 	return bigramTotal;
 }
 
-int count(char* word, char* fileName){
+int count(char* word, char* fileName, int returnFactors[]){
 	FILE* fileReader;
 	char* iter = word;
 	char letter;
 	int count = 0;
-	int location = 0; int distance[5];
+	int location = 0;
+	int distance[5];
+	int factors[10] = {0,0,0,0,0,0,0,0,0,0};
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("ERROR: Failed to open fileReader when counting words.\n");
@@ -201,11 +205,52 @@ int count(char* word, char* fileName){
 		}
 	}
 	if(count > 3){
-		//printf("The Word: %s | %d", word, count);
+		printf("The Word: %s | %d", word, count);
 		for(int i=0; i<count-1; i++){
-			//printf(" | %d", distance[i]);
+			printf("\n| %d |", distance[i]);
+			primeFactorization(distance[i], factors);
+			
+			printf("\nPRIMES: ");
+			for(int j=0; j<10; j++){
+				printf("%d | ", factors[j]);
+			}
+			printf("\nRETURNED: ");
+			for(int j=0; j<10; j++){
+				printf("%d | ", returnFactors[j]);
+			}
+
+			// Eliminate non-common prime factors
+			if(i == 0){
+				for(int j=0; j<10; j++){
+					returnFactors[j] = factors[j];
+					//printf("\nTest: %d\n", returnFactors[j]);
+				}
+			}
+			else{
+				int k=0;
+				for(int j=0; j<10; j++){
+					if(factors[j] == returnFactors[k]){
+						k++;
+					}
+					else if(factors[j] < returnFactors[k]){
+						j++;
+					}
+					else{
+						for(int temp = k; temp<9; temp++){
+							returnFactors[k] = returnFactors[k+1];
+						}
+						factors[9] = 0;
+					}
+				}
+			}
+			printf("\nFACTORS: ");
+			for(int j=0; j<10; j++){
+				printf("%d | ", returnFactors[j]);
+			}
 		}
-		//printf("\n");
+		printf("\n");
+
+		return 1;
 	}
 
 	if(fclose(fileReader)){
@@ -216,6 +261,37 @@ int count(char* word, char* fileName){
 	return 0;
 }
 
+int sortPercentages(float letterPercentage[], int letterDistrobution[], int sortSize){
+	//int letterDistrobution[26];
+
+	// Initialize array values to check for error later
+	for(int i=0; i<sortSize; i++){
+		letterDistrobution[i] = -1;
+	}
+
+	// Set the first value of the distrobution array
+	letterDistrobution[0] = 0;
+
+	// Input array values based on character percentage rates
+	for(int i=1; i<sortSize; i++){
+		int j = 0;
+		while(letterPercentage[i]<letterPercentage[letterDistrobution[j]] && j<i){
+			j++;
+		}
+		for(int k=i; k>j; k--){
+			letterDistrobution[k] = letterDistrobution[k-1];
+		}
+		letterDistrobution[j] = i;
+	}
+
+	// Output the array
+	for(int i=0; i<sortSize; i++){
+		//printf("%c | ", letterDistrobution[i]+65);
+		//printf("%d | ", letterDistrobution[i]);
+	}
+	return 0;
+}
+
 int vignereKey(char* fileName){
 	int wordFound = 0;
 	FILE* fileReader;
@@ -223,6 +299,8 @@ int vignereKey(char* fileName){
 	int wordLength = 0;
 	char letter;
 	char word[50];
+	int distance;
+	int primeFactors[10] = {0,0,0,0,0,0,0,0,0,0};
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("Failed to open file reader when finding a vignereKey.\n");
@@ -253,7 +331,7 @@ int vignereKey(char* fileName){
 				wordLength++;
 			}
 			// Only count words with more than 4 characters
-			if(wordLength >= 4){
+			if(wordLength >= 6){
 				for(int k=0; k<wordLength; k++){
 					word[k] = encryptedFile[i+k];
 				}
@@ -268,10 +346,7 @@ int vignereKey(char* fileName){
 		// Print out the found word
 		if(wordFound){
 			word[wordLength] = '\0';
-			count(word, fileName);
-			//for(int i=0; i<wordLength; i++){
-				//printf("%c",word[i]);
-			//}
+			count(word, fileName, primeFactors);
 			wordLength = 0;
 			wordFound = 0;
 		}
@@ -284,6 +359,39 @@ int vignereKey(char* fileName){
 	return 0;
 }
 
+int columnarFound(char decipheredText[], int fileSize, int key, int tries){
+	char suffix[2];
+	tries = 10-tries;
+
+	printf("\n\n\n\n\n");
+
+	switch(tries){
+		case 1:
+			suffix[0] = 's';
+			suffix[1] = 't';
+			break;
+		case 2:
+			suffix[0] = 'n';
+			suffix[1] = 'd';
+			break;
+		case 3:
+			suffix[0] = 'r';
+			suffix[1] = 'd';
+			break;
+		default:
+			suffix[0] = 't';
+			suffix[1] = 'h';
+	}
+
+
+	printf("Encryption Type: Columnar\nEncryption Key: %d\nThis was deciphered using the %d%c%c most likely key of 10 attempted keys\n", key, tries, suffix[0], suffix[1]);
+	printf("An excerpt of the deciphered test:\n");
+	for(int i=0; i<fileSize && i<250; i++){
+		printf("%c", decipheredText[i]);
+	}
+	printf("\n\n\n\n\n\n");
+}
+
 int columnarKey(char* fileName){
 	FILE* fileReader;
 	int fileSize;
@@ -293,6 +401,7 @@ int columnarKey(char* fileName){
 	int offset = 0;
 	int primeFactors[10];
 	int commonMultiples[10];
+	int likelyhoodOrder[10];
 	float ngramFreq[10];
 	char letter;
 
@@ -350,10 +459,6 @@ int columnarKey(char* fileName){
 		}
 	}
 
-	for(int i=0; i<10; i++){
-		printf("CM: %d\n",commonMultiples[i]);
-	}
-
 	// Decrypt the files based on common multiples of prime factors of the file size
 	for(int i=0; i<10; i++){
 		char unencrypted[fileSize];
@@ -361,32 +466,34 @@ int columnarKey(char* fileName){
 		for(int j=0; j<fileSize/commonMultiples[i]; j++){
 			int iter = j;
 			for(int k=0; k<commonMultiples[i]; k++){
-				//unencrypted[k+j*commonMultiples[i]] = cipher[iter];
 				decipher[i][k+j*commonMultiples[i]] = cipher[iter];
 				iter+=offset;
 			}
 		}
-		/*
-		for(int j=0; j<fileSize; j++){
-			printf("%c",unencrypted[j]);
-		}
-		*/
-		printf("\n");
-		//decipher[i] = unencrypted;
-
-		//float check = trigramCheck(unencrypted, fileSize);
-		//printf("Check: %f\n", check);
-
 		ngramFreq[i] = bigramCheck(decipher[i], fileSize)+trigramCheck(decipher[i], fileSize);
-
-		printf("Check: %f | %f | %f\n", bigramCheck(unencrypted, fileSize), trigramCheck(unencrypted, fileSize), ngramFreq[i]);
 	}
 
-	for(int i=0; i<10; i++){
-		for(int j=0; j<fileSize; j++){
-			printf("%c", decipher[i][j]);
+
+	sortPercentages(ngramFreq, likelyhoodOrder, 10);
+
+	for(int i=9; i>=0; i--){
+		char userInput;
+		for(int j=0; j<fileSize && j<100; j++){
+			printf("%c", decipher[likelyhoodOrder[i]][j]);
 		}
-		printf("\nFreq: %f\n", ngramFreq[i]);
+		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+		while((userInput = fgetc(stdin)) != 'n'){
+			if(userInput == 'y'){
+				columnarFound(decipher[likelyhoodOrder[i]], fileSize, commonMultiples[likelyhoodOrder[i]], i);
+				return 0;
+			}
+			if(userInput == '\n'){
+
+			}
+			else{
+				printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+			}
+		}
 	}
 
 	// Attempt to close the file reader, report an error if unable to close the file
@@ -423,7 +530,7 @@ int topLetters(int letterDistrobution[]){
 	return 0;
 }
 
-int identifyCrypto(double letterPerc[], int letterDistro[], char* fileName){
+int identifyCrypto(float letterPerc[], int letterDistro[], char* fileName){
 	int transposition = 0;
 
 	double topFivePerc = 0.0;
@@ -457,43 +564,13 @@ int identifyCrypto(double letterPerc[], int letterDistro[], char* fileName){
 	return 0;
 }
 
-int sortPercentages(double letterPercentage[], int letterDistrobution[]){
-	//int letterDistrobution[26];
-
-	// Initialize array values to check for error later
-	for(int i=0; i<26; i++){
-		letterDistrobution[i] = -1;
-	}
-
-	// Set the first value of the distrobution array
-	letterDistrobution[0] = 0;
-
-	// Input array values based on character percentage rates
-	for(int i=1; i<26; i++){
-		int j = 0;
-		while(letterPercentage[i]<letterPercentage[letterDistrobution[j]] && j<i){
-			j++;
-		}
-		for(int k=i; k>j; k--){
-			letterDistrobution[k] = letterDistrobution[k-1];
-		}
-		letterDistrobution[j] = i;
-	}
-
-	// Output the array
-	for(int i=0; i<26; i++){
-		//printf("%c | ", letterDistrobution[i]+65);
-	}
-
-	return 0;
-}
 
 int parseCrypto(char* fileName){
 	FILE* fileReader;
 	char readChar;
 	int alphabet[26];
 	int letterDistrobution[26];
-	double letterPercentage[26];
+	float letterPercentage[26];
 	int letter;
 	long letterCount = 0;
 	fopen(fileName, "r");
@@ -523,10 +600,10 @@ int parseCrypto(char* fileName){
 
 	for(int i=0; i<26; i++){
 		letterPercentage[i] = ((double)alphabet[i]/(double)letterCount);
-		printf("%c: %d | %f\n", (i+65), alphabet[i], letterPercentage[i]);
+		//printf("%c: %d | %f\n", (i+65), alphabet[i], letterPercentage[i]);
 	}
 
-	sortPercentages(letterPercentage, letterDistrobution);
+	sortPercentages(letterPercentage, letterDistrobution, 26);
 	identifyCrypto(letterPercentage, letterDistrobution, fileName);
 
 	return 0;
@@ -535,9 +612,9 @@ int parseCrypto(char* fileName){
 int main(int argc, char *argv[]){
 	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
-	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
+	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
-	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
 	//
 	//
