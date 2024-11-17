@@ -228,18 +228,17 @@ int count(char* word, char* fileName, int returnFactors[]){
 			}
 			else{
 				int k=0;
-				for(int j=0; j<10; j++){
+				for(int j=0; j<10 && returnFactors[k] != 0; j++){
 					if(factors[j] == returnFactors[k]){
 						k++;
 					}
-					else if(factors[j] < returnFactors[k]){
-						j++;
-					}
-					else{
+					else if(factors[j] > returnFactors[k]){
+						//printf("\nTEST: %d | %d\n", factors[j], returnFactors[k]);
 						for(int temp = k; temp<9; temp++){
-							returnFactors[k] = returnFactors[k+1];
+							returnFactors[temp] = returnFactors[temp+1];
 						}
 						factors[9] = 0;
+						j--;
 					}
 				}
 			}
@@ -610,9 +609,9 @@ int parseCrypto(char* fileName){
 }
 
 int main(int argc, char *argv[]){
-	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
+	parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
-	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
+	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
 	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
