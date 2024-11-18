@@ -207,11 +207,10 @@ int count(char* word, char* fileName, int returnFactors[]){
 		}
 	}
 	if(count > 3){
-		printf("The Word: %s | %d", word, count);
+		//printf("The Word: %s | %d", word, count);
 		for(int i=0; i<5; i++){
-			printf("| %d ", distance[i]);
+		//	printf("| %d ", distance[i]);
 		}
-		printf("\n");
 		int min = distance[0];
 		int iter = 0;
 		for(int i=1; i<count-1; i++){
@@ -271,7 +270,6 @@ float indexOfCoincidence(char text[], int fileSize, int factor){
 	float indexDiff = 0;
 	char subText[subSize];
 
-	
 	for(int i=0; i<factor; i++){
 		int iter = i;
 		float difference;
@@ -360,6 +358,50 @@ int mutualIC(char text[], int fileSize, int factor, char key[]){
 	}
 }
 
+void vignereFound(char encryptedText[], int fileSize, char key[], int keySize, int tries){
+	char suffix[2];
+
+	printf("\n\n\n\n\n");
+
+	switch(tries){
+		case 1:
+			suffix[0] = 's';
+			suffix[1] = 't';
+			break;
+		case 2:
+			suffix[0] = 'n';
+			suffix[1] = 'd';
+			break;
+		case 3:
+			suffix[0] = 'r';
+			suffix[1] = 'd';
+			break;
+		default:
+			suffix[0] = 't';
+			suffix[1] = 'h';
+	}
+
+
+	printf("Encryption Type: Vignere\nEncryption Key: ");
+	for(int i=0; i<keySize; i++){
+		printf("%c", key[i]);
+	}
+
+	printf("\nThis was deciphered on the %d%c%c try\n", tries, suffix[0], suffix[1]);
+	printf("An excerpt of the deciphered test:\n");
+	for(int i=0; i<fileSize && i<250; i++){
+			if(encryptedText[i]-key[i%keySize] < 0){
+				//printf("\nTest: %d | %d | %d\n", encryptedFile[j], j%factors[i], key[j%factors[i]]);
+				printf("%c", encryptedText[i]-key[i%keySize]+91);
+			}
+			else{
+				//printf("\nTest: %c | %d | %c\n", encryptedFile[j], j%factors[i], key[j%factors[i]]);
+				printf("%c", encryptedText[i]-key[i%keySize]+65);
+			}
+	}
+	printf("\n\n\n\n\n\n");
+}
+
 int vignereKey(char* fileName){
 	int wordFound = 0;
 	FILE* fileReader;
@@ -369,7 +411,7 @@ int vignereKey(char* fileName){
 	char word[50];
 	int distance;
 	int factors[10] = {0,0,0,0,0,0,0,0,0,0};
-	int numFactors;
+	int numFactors = 0;
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("Failed to open file reader when finding a vignereKey.\n");
@@ -384,57 +426,57 @@ int vignereKey(char* fileName){
 	
 	char encryptedFile[fileSize];
 
-
-
 	for(int i=0; i<fileSize; i++){
 		fread(&letter, sizeof(char), 1, fileReader);
 		encryptedFile[i] = letter;
 		//printf("Text: %c\n", letter);
 	}
 
-	// Find repeated words
-	for(int i=0; i<fileSize; i++){
-		for(int j=i+1; j<fileSize; j++){
-			// When you find two characters that match
-			while(encryptedFile[i+wordLength] == encryptedFile[j+wordLength]){
-				// Increase word length
-				wordLength++;
-			}
-			// Only count words with more than 4 characters
-			if(wordLength >= 6){
-				for(int k=0; k<wordLength; k++){
-					word[k] = encryptedFile[i+k];
-				}
 
-				wordFound = 1;
-				break;
+	// Find repeated words
+	for(int iter=6; iter>0 && !numFactors; iter--){
+		for(int i=0; i<fileSize; i++){
+			for(int j=i+1; j<fileSize; j++){
+				// When you find two characters that match
+				while(encryptedFile[i+wordLength] == encryptedFile[j+wordLength]){
+					// Increase word length
+					wordLength++;
+				}
+				// Only count words with more than 4 characters
+				if(wordLength >= iter){
+					for(int k=0; k<wordLength; k++){
+						word[k] = encryptedFile[i+k];
+					}
+
+					wordFound = 1;
+					break;
+				}
+				else{
+					wordLength = 0;
+				}
 			}
-			else{
+			// Print out the found word
+			if(wordFound){
+				word[wordLength] = '\0';
+				if(numFactors = count(word, fileName, factors)){
+					break;
+				}
 				wordLength = 0;
+				wordFound = 0;
 			}
-		}
-		// Print out the found word
-		if(wordFound){
-			word[wordLength] = '\0';
-			if(numFactors = count(word, fileName, factors)){
-				printf("\nNUM: %d\n", numFactors);
-				break;
-			}
-			wordLength = 0;
-			wordFound = 0;
 		}
 	}
 
 	int likelyhoodOrder[numFactors];
 	float possibleIndex[numFactors];
 
-	printf("\n");
 
 	for(int i=0; i<numFactors; i++){
 		possibleIndex[numFactors] = indexOfCoincidence(encryptedFile, fileSize, factors[i]);
 	}
 
 	sortPercentages(possibleIndex, likelyhoodOrder, numFactors);
+
 
 	// Mutual Index of Coincidence
 	for(int i=numFactors-1; i>=0; i--){
@@ -454,6 +496,7 @@ int vignereKey(char* fileName){
 		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
 		while((userInput = fgetc(stdin)) != 'n'){
 			if(userInput == 'y'){
+				vignereFound(encryptedFile, fileSize, key, factors[i], numFactors-i);
 				return 0;
 			}
 			if(userInput == '\n'){
@@ -465,7 +508,7 @@ int vignereKey(char* fileName){
 		}
 	}
 
-
+	printf("6\n");
 
 	if(fclose(fileReader)){
 		printf("Failed to close file reader after finding a vignere key.\n");
@@ -658,9 +701,8 @@ int identifyCrypto(float letterPerc[], int letterDistro[], char* fileName){
 	topFivePerc += letterPerc[letterDistro[4]];
 	
 	// If top five percentages are lower than 35% it is likely not normal english distrobution
-	printf("Distrobution: %f\n", topFivePerc);
 	if(topFivePerc < .4){
-		printf("This is likely a vignere cipher.\n");
+		//printf("This is likely a vignere cipher.\n");
 		vignereKey(fileName);
 		return 0;
 	}
@@ -726,12 +768,12 @@ int parseCrypto(char* fileName){
 
 int main(int argc, char *argv[]){
 	//parseCrypto("ciphertexts/ciphertext7.txt");
-	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
-	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
+	parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
+	parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
 	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
-	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
-	//parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
+	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
+	parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
 	//
 	//
 	if(0){
