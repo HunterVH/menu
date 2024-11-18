@@ -493,7 +493,7 @@ int vignereKey(char* fileName){
 				printf("%c", encryptedFile[j]-key[j%factors[i]]+65);
 			}
 		}
-		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+		printf("\nDDDoes the above excerpt look like the cipher has been cracked?(y/n): ");
 		while((userInput = fgetc(stdin)) != 'n'){
 			if(userInput == 'y'){
 				vignereFound(encryptedFile, fileSize, key, factors[i], numFactors-i);
@@ -639,7 +639,7 @@ int columnarKey(char* fileName){
 		for(int j=0; j<fileSize && j<100; j++){
 			printf("%c", decipher[likelyhoodOrder[i]][j]);
 		}
-		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+		printf("\nEEDoes the above excerpt look like the cipher has been cracked?(y/n): ");
 		while((userInput = fgetc(stdin)) != 'n'){
 			if(userInput == 'y'){
 				columnarFound(decipher[likelyhoodOrder[i]], fileSize, commonMultiples[likelyhoodOrder[i]], i);
@@ -680,7 +680,6 @@ int topLetters(int letterDistrobution[]){
 		}
 	}
 	if(top > 6){
-		printf("Letters Found: %d\n", top);
 		return 1;
 	}
 
@@ -702,17 +701,14 @@ int identifyCrypto(float letterPerc[], int letterDistro[], char* fileName){
 	
 	// If top five percentages are lower than 35% it is likely not normal english distrobution
 	if(topFivePerc < .4){
-		//printf("This is likely a vignere cipher.\n");
 		vignereKey(fileName);
 		return 0;
 	}
 	else if(topLetters(letterDistro)){
-		printf("This is likely a permutation cipher.\n");
 		columnarKey(fileName);
 		return 0;
 	}
 	else{
-		printf("This is likely a shift cipher.\n");
 		unshift(shiftNum(letterDistro), fileName);
 		return 0;
 	}
@@ -771,7 +767,7 @@ int main(int argc, char *argv[]){
 	parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
 	parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
 	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
-	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
+	parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
 	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
 	//
