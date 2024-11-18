@@ -223,14 +223,7 @@ int count(char* word, char* fileName, int returnFactors[]){
 				iter++;
 			}
 		}
-		//Find 10 factors
-		//
-		for(int i=0; i<10; i++){
-			printf("| %d ", returnFactors[i]);
-		}
-		printf("\nMIN: %d\n", min);
-
-		return 1;
+		return iter;
 	}
 
 	if(fclose(fileReader)){
@@ -274,30 +267,97 @@ int sortPercentages(float letterPercentage[], int letterDistrobution[], int sort
 
 float indexOfCoincidence(char text[], int fileSize, int factor){
 	int subSize = fileSize/factor+1;
-	int iter = 0;
 	float index;
+	float indexDiff = 0;
 	char subText[subSize];
 
-	for(int i=0; iter<fileSize; i++){
-		subText[i] = text[iter];
-		iter += factor;
-	}
+	
+	for(int i=0; i<factor; i++){
+		int iter = i;
+		float difference;
+		// Write subText to char array
+		for(int j=0; iter<fileSize; j++){
+			subText[j] = text[iter];
+			iter += factor;
+		}
+		// Iterate through subtext and calculate the index of coincidence
+		for(int j=0; j<26; j++){
+			int letterFreq = 0;
+			for(int k=0; k<subSize; k++){
+				if(subText[k] == j+65){
+					letterFreq++;
+				}
+			}
+			index += (letterFreq)*(letterFreq-1);
+		}	
+		for(int i=0; i<subSize; i++){
+			//printf("%c", subText[i]);
+		}
 
-	for(int i=0; i<26; i++){
-		int letterFreq = 0;
+		index /= ((float)(subSize)*(float)(subSize-1));
+		difference = (ENGLISH_IC-index);
+		if(difference < 0){
+			difference *= -1;
+		}
+		indexDiff += difference;
+	}
+	return indexDiff;
+}
+
+int mutualIC(char text[], int fileSize, int factor, char key[]){
+	int subSize = fileSize/factor+1;
+	float maxIndex = 0;
+	float indexDiff = 0;
+	char subText[subSize];
+	float normalDistrobution[26] = {.082, .015, .028, .043, .127, .022, .020, .061, .070, .0077, .040, .024, .067, .075, .019, .0001, .060, .063, .091, .028, .0098, .024, .0015, .020, .0007};
+
+	for(int i=0; i<factor; i++){
+		int iter = i;
+		float difference;
+		maxIndex = 0;
+		// Write subText to char array
+		for(int j=0; iter<fileSize; j++){
+			subText[j] = text[iter];
+			//printf("Text: %d | %c\n", iter, text[iter]);
+			iter += factor;
+		}
+		//printf("\n");
 		for(int j=0; j<subSize; j++){
-			if(subText[j] == i+65){
-				letterFreq++;
+			//printf("%c", subText[j]);
+		}
+		//printf("\n");
+		// Iterate through the subText and find the likey key
+		for(int j=0; j<26; j++){
+			float index = 0;
+			//printf("\n");
+			if(j > 0){
+				for(int k=0; k<subSize; k++){
+					subText[k] = subText[k]-1;
+					if(subText[k] < 65){
+						subText[k] = subText[k]+26;
+					}
+					//printf("%c", subText[k]);
+				}
+			}
+			//printf("\n");
+			for(int k=0; k<26; k++){
+				int letterFreq=0;
+				for(int it=0; it<subSize; it++){
+					if(subText[it] == k+65){
+						letterFreq++;
+					}
+				}
+				//printf("Freq of %c: %d\n", k+65, letterFreq);
+				index += (letterFreq)*normalDistrobution[k];
+			}
+			index /= (float)subSize;
+			if(index > maxIndex){
+				//printf("\nINDEX: %f - %f | %d - %d\n", maxIndex, index, i, j);
+				maxIndex = index;
+				key[i] = j+65;
 			}
 		}
-		index += (letterFreq)*(letterFreq-1);
 	}
-
-	for(int i=0; i<subSize; i++){
-		printf("%c", subText[i]);
-	}
-
-	return index /= ((float)(subSize)*(float)(subSize-1));
 }
 
 int vignereKey(char* fileName){
@@ -309,6 +369,7 @@ int vignereKey(char* fileName){
 	char word[50];
 	int distance;
 	int factors[10] = {0,0,0,0,0,0,0,0,0,0};
+	int numFactors;
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("Failed to open file reader when finding a vignereKey.\n");
@@ -328,6 +389,7 @@ int vignereKey(char* fileName){
 	for(int i=0; i<fileSize; i++){
 		fread(&letter, sizeof(char), 1, fileReader);
 		encryptedFile[i] = letter;
+		//printf("Text: %c\n", letter);
 	}
 
 	// Find repeated words
@@ -354,7 +416,8 @@ int vignereKey(char* fileName){
 		// Print out the found word
 		if(wordFound){
 			word[wordLength] = '\0';
-			if(count(word, fileName, factors)){
+			if(numFactors = count(word, fileName, factors)){
+				printf("\nNUM: %d\n", numFactors);
 				break;
 			}
 			wordLength = 0;
@@ -362,49 +425,53 @@ int vignereKey(char* fileName){
 		}
 	}
 
+	int likelyhoodOrder[numFactors];
+	float possibleIndex[numFactors];
+
 	printf("\n");
 
-	int iter = 0;
-
-	int subSize = fileSize/factors[1]+1;
-
-	char subText[subSize];
-
-	// Use the factors to check IC of the subtexts
-	for(int i=0; i<fileSize; i+=factors[1]){
-		subText[iter] = encryptedFile[i];
-		printf("%c | %c\n", subText[iter], encryptedFile[i]);
-		iter++;
+	for(int i=0; i<numFactors; i++){
+		possibleIndex[numFactors] = indexOfCoincidence(encryptedFile, fileSize, factors[i]);
 	}
 
-	float freqTot = 0;
+	sortPercentages(possibleIndex, likelyhoodOrder, numFactors);
 
-	for(int i=0; i<26; i++){
-		int letterFreq = 0;
-		for(int j=0; j<subSize; j++){
-			if(subText[j] == i+65){
-				letterFreq++;
+	// Mutual Index of Coincidence
+	for(int i=numFactors-1; i>=0; i--){
+		char userInput;
+		char key[factors[i]];
+		mutualIC(encryptedFile, fileSize, factors[i], key);
+		for(int j=0; j<fileSize && j< 100; j++){
+			if(encryptedFile[j]-key[j%factors[i]] < 0){
+				//printf("\nTest: %d | %d | %d\n", encryptedFile[j], j%factors[i], key[j%factors[i]]);
+				printf("%c", encryptedFile[j]-key[j%factors[i]]+91);
+			}
+			else{
+				//printf("\nTest: %c | %d | %c\n", encryptedFile[j], j%factors[i], key[j%factors[i]]);
+				printf("%c", encryptedFile[j]-key[j%factors[i]]+65);
 			}
 		}
-		freqTot += (letterFreq)*(letterFreq-1);
+		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+		while((userInput = fgetc(stdin)) != 'n'){
+			if(userInput == 'y'){
+				return 0;
+			}
+			if(userInput == '\n'){
+
+			}
+			else{
+				printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+			}
+		}
 	}
 
-	for(int i=0; i<subSize; i++){
-		printf("%c", subText[i]);
-	}
-
-	freqTot /= ((float)(subSize)*(float)(subSize-1));
-
-	printf("\n| %f |\n", freqTot);
-
-	indexOfCoincidence(encryptedFile, fileSize, factors[1]);
 
 
 	if(fclose(fileReader)){
 		printf("Failed to close file reader after finding a vignere key.\n");
-		return 1;
+		return -1;
 	}
-	return 0;
+	return -2;
 }
 
 int columnarFound(char decipheredText[], int fileSize, int key, int tries){
@@ -658,6 +725,7 @@ int parseCrypto(char* fileName){
 }
 
 int main(int argc, char *argv[]){
+	//parseCrypto("ciphertexts/ciphertext7.txt");
 	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
 	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
 	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
@@ -695,3 +763,4 @@ int main(int argc, char *argv[]){
 
 	return 0;
 }
+//PMUANGHAT
