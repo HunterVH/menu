@@ -4,6 +4,7 @@
 
 #define ENGLISH_IC 0.068
 
+
 int shiftNum(int letterDistro[]){
 	int checkForE = 0;
 	// Simple Shift
@@ -11,7 +12,7 @@ int shiftNum(int letterDistro[]){
 		for(int j=0; j<8; j++){
 			int difference = letterDistro[j]-letterDistro[i];
 			if(difference < 0){ difference += 26; }
-			printf("  %c | %c | %d\n", letterDistro[i]+65,letterDistro[j]+65,difference);
+			//printf("  %c | %c | %d\n", letterDistro[i]+65,letterDistro[j]+65,difference);
 			if(difference == 4 ||
 			   difference == 9 ||
 			   difference == 11 ||
@@ -24,7 +25,7 @@ int shiftNum(int letterDistro[]){
 			}
 		}
 		if(checkForE > 5){
-			printf("We found E it is %d:%c\n", letterDistro[i], letterDistro[i]+65);
+			//printf("We found E it is %d:%c\n", letterDistro[i], letterDistro[i]+65);
 			return letterDistro[i]-4;
 		}
 	}
@@ -36,6 +37,7 @@ int unshift(int shift, char* fileName){
 	FILE* fileReader;
 	FILE* fileWriter;
 	char letter;
+	int i = 0;
 
 	if(!(fileReader = fopen(fileName, "r"))){
 		printf("ERROR: Failed to open read file to shift.\n");
@@ -46,7 +48,11 @@ int unshift(int shift, char* fileName){
 		return 1;
 	}
 
-	while(!feof(fileReader)){
+	printf("\n\n\n\n\n");
+	printf("Encryption Type: Caesar\nEncryption Key: %c/%d\n", shift+65, shift);
+	printf("An excerpt of the deciphered text:\n");
+
+	while(!feof(fileReader) && i<250){
 		fread(&letter, sizeof(char), 1, fileReader);
 		letter = toupper(letter);
 		
@@ -55,9 +61,11 @@ int unshift(int shift, char* fileName){
 			letter+=26;
 		}
 		fwrite(&letter, sizeof(char), 1, fileWriter);
+		printf("%c", letter);
+		i++;
 	}
 
-	printf("\n");
+	printf("\n\n\n\n\n");
 
 	if((fclose(fileReader))){
 		printf("ERROR: Failed to close read file after shift.\n");
@@ -418,7 +426,7 @@ int vignereKey(char* fileName){
 		return 1;
 	}
 
-	// Read all characters from the encrypted file into an array
+	// Read all characters from the encrypted file into an arrayO | D 
 	fseek(fileReader, 0, SEEK_END);
 	fileSize = ftell(fileReader);
 	fseek(fileReader, 0, SEEK_SET);
@@ -682,8 +690,6 @@ int topLetters(int letterDistrobution[]){
 	if(top > 6){
 		return 1;
 	}
-
-	printf("Letters Found: %d\n", top);
 	return 0;
 }
 
@@ -764,11 +770,11 @@ int parseCrypto(char* fileName){
 
 int main(int argc, char *argv[]){
 	//parseCrypto("ciphertexts/ciphertext7.txt");
-	parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
-	parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
-	parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
-	parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
-	parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
+	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
+	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
+	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
+	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
 	parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
 	//
 	//
@@ -801,4 +807,3 @@ int main(int argc, char *argv[]){
 
 	return 0;
 }
-//PMUANGHAT
