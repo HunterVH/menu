@@ -1,16 +1,13 @@
-all: menu permission cracking
+all: menu permission
 
-cracking: cracking.o
-	gcc -std=c18 -o cracking cracking.o
-
-cracking.o: cracking.c
-	gcc -std=c18 -c -g cracking.c
-
-menu: menu.o cypher.o directory.o password.o permission.o
-	gcc -std=c18 -o menu menu.o cypher.o directory.o password.o permission.o
+menu: menu.o cypher.o directory.o password.o permission.o cracking.o
+	gcc -std=c18 -o menu menu.o cypher.o directory.o password.o permission.o cracking.o
 	
 menu.o: menu.c
 	gcc -std=c18 -c -g menu.c
+
+cracking.o: cracking.c
+	gcc -std=c18 -c -g cracking.c
 	
 cypher.o: cypher.c
 	gcc -std=c18 -c -g cypher.c

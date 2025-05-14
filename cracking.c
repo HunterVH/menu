@@ -1,12 +1,75 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <time.h>
+#include <errno.h>
 
 #define ENGLISH_IC 0.068
+clock_t start, end;
 
+int unshift(int shift, char* fileName){
+	FILE* fileReader;
+	FILE* fileWriter;
+	char letter;
+	int i = 0;
 
-int shiftNum(int letterDistro[]){
+	if(!(fileReader = fopen(fileName, "r"))){
+		printf("ERROR: Failed to open read file to shift.\n");
+		return 1;
+	}
+	if(!(fileWriter = fopen("decryption.txt", "w"))){
+		printf("ERROR: Failed to open write file to shift.\n");
+		return 1;
+	}
+
+	printf("\n\n\n\n\n");
+	printf("Encryption Type: Caesar\nEncryption Key: %c/%d\n", shift+65, shift);
+	printf("Time Taken: %f sec\n", ((double)(clock()-start)/CLOCKS_PER_SEC));
+	printf("An excerpt of the deciphered text:\n");
+
+	while(!feof(fileReader)){
+		fread(&letter, sizeof(char), 1, fileReader);
+		letter = toupper(letter);
+		letter -= shift;
+		if(letter < 65){
+			letter+=26;
+		}
+		fwrite(&letter, sizeof(char), 1, fileWriter);
+		if(i<250){
+			printf("%c",letter);
+		}
+		i++;
+	}
+
+	printf("\n\n\n\n\n");
+
+	if((fclose(fileReader))){
+		printf("ERROR: Failed to close read file after shift.\n");
+		if(!(fclose(fileWriter))){
+			printf("ERROR: Failed to close write file after shift.\n");
+		}
+	}
+	if((fclose(fileWriter))){
+		printf("ERROR: Failed to close write file after shift.\n");
+	}
+	
+	return 0;
+}
+
+int shiftNum(int letterDistro[], char* fileName){
+	FILE* fileReader;
 	int checkForE = 0;
+	int k = 0;
+	char letter;
+	char userInput;
+
+	if(!(fileReader = fopen(fileName, "r"))){
+		printf("ERROR: Failed to open read file to shift.\n");
+		return 1;
+	}
+
+
 	// Simple Shift
 	for(int i=0; i<8; i++){
 		for(int j=0; j<8; j++){
@@ -25,61 +88,37 @@ int shiftNum(int letterDistro[]){
 			}
 		}
 		if(checkForE > 5){
-			//printf("We found E it is %d:%c\n", letterDistro[i], letterDistro[i]+65);
-			return letterDistro[i]-4;
+			fseek(fileReader, 0, SEEK_SET);
+			k = 0;
+			while(!feof(fileReader) && k<100){
+				fread(&letter, sizeof(char), 1, fileReader);
+				//printf("%c | %d | ", letter, letterDistro[i]);
+				letter -= letterDistro[i]-4;
+				if(letter < 65){
+					printf("%c", letter+26);
+				}
+				else{
+					printf("%c", letter);
+				}
+				k++;
+			}
+			printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+			while((userInput = fgetc(stdin)) != 'n'){
+				if(userInput == 'y'){
+					unshift(letterDistro[i]-4, fileName);
+					return 0;
+				}
+				if(userInput == '\n'){
+
+				}
+				else{
+					printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+				}
+			}
 		}
 	}
-
-	return 0;
-}
-
-int unshift(int shift, char* fileName){
-	FILE* fileReader;
-	FILE* fileWriter;
-	char letter;
-	int i = 0;
-
-	if(!(fileReader = fopen(fileName, "r"))){
-		printf("ERROR: Failed to open read file to shift.\n");
-		return 1;
-	}
-	if(!(fileWriter = fopen("ciphertexts/decryption.txt", "a"))){
-		printf("ERROR: Failed to open write file to shift.\n");
-		return 1;
-	}
-
-	printf("\n\n\n\n\n");
-	printf("Encryption Type: Caesar\nEncryption Key: %c/%d\n", shift+65, shift);
-	printf("An excerpt of the deciphered text:\n");
-
-	while(!feof(fileReader) && i<250){
-		fread(&letter, sizeof(char), 1, fileReader);
-		letter = toupper(letter);
-		
-		letter -= shift;
-		if(letter < 65){
-			letter+=26;
-		}
-		fwrite(&letter, sizeof(char), 1, fileWriter);
-		printf("%c", letter);
-		i++;
-	}
-
-	printf("\n\n\n\n\n");
-
-	if((fclose(fileReader))){
-		printf("ERROR: Failed to close read file after shift.\n");
-		if(!(fclose(fileWriter))){
-			printf("ERROR: Failed to close write file after shift.\n");
-		}
-		return 1;
-	}
-	if((fclose(fileWriter))){
-		printf("ERROR: Failed to close write file after shift.\n");
-		return 1;
-	}
-	
-	return 0;
+	fclose(fileReader);
+	return -2;
 }
 
 int primeFactorization(int number, int factors[]){
@@ -366,10 +405,17 @@ int mutualIC(char text[], int fileSize, int factor, char key[]){
 	}
 }
 
-void vignereFound(char encryptedText[], int fileSize, char key[], int keySize, int tries){
+int vignereFound(char encryptedText[], int fileSize, char key[], int keySize, int tries){
+	FILE* fileWriter;
 	char suffix[2];
+	char letter;
 
 	printf("\n\n\n\n\n");
+
+	if(!(fileWriter = fopen("decryption.txt", "w"))){
+		printf("ERROR: Failed to open write file in vignere.\n");
+		return 1;
+	}
 
 	switch(tries){
 		case 1:
@@ -396,18 +442,23 @@ void vignereFound(char encryptedText[], int fileSize, char key[], int keySize, i
 	}
 
 	printf("\nThis was deciphered on the %d%c%c try\n", tries, suffix[0], suffix[1]);
+	printf("Time Taken: %f sec\n", ((double)(clock()-start)/CLOCKS_PER_SEC));
 	printf("An excerpt of the deciphered test:\n");
-	for(int i=0; i<fileSize && i<250; i++){
-			if(encryptedText[i]-key[i%keySize] < 0){
-				//printf("\nTest: %d | %d | %d\n", encryptedFile[j], j%factors[i], key[j%factors[i]]);
-				printf("%c", encryptedText[i]-key[i%keySize]+91);
-			}
-			else{
-				//printf("\nTest: %c | %d | %c\n", encryptedFile[j], j%factors[i], key[j%factors[i]]);
-				printf("%c", encryptedText[i]-key[i%keySize]+65);
-			}
+	for(int i=0; i<fileSize; i++){
+		if((letter = encryptedText[i]-key[i%keySize]) < 0){
+			letter += 91;
+		}
+		else{
+			letter += 65;
+		}
+		if(i<250){
+			printf("%c", letter);
+		}
+		fwrite(&letter, sizeof(char), 1, fileWriter);
 	}
 	printf("\n\n\n\n\n\n");
+	fclose(fileWriter);
+	return 0;
 }
 
 int vignereKey(char* fileName){
@@ -437,7 +488,6 @@ int vignereKey(char* fileName){
 	for(int i=0; i<fileSize; i++){
 		fread(&letter, sizeof(char), 1, fileReader);
 		encryptedFile[i] = letter;
-		//printf("Text: %c\n", letter);
 	}
 
 
@@ -474,6 +524,10 @@ int vignereKey(char* fileName){
 			}
 		}
 	}
+	
+	if(wordFound == 0){
+		return -2;
+	}
 
 	int likelyhoodOrder[numFactors];
 	float possibleIndex[numFactors];
@@ -501,7 +555,7 @@ int vignereKey(char* fileName){
 				printf("%c", encryptedFile[j]-key[j%factors[i]]+65);
 			}
 		}
-		printf("\nDDDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
 		while((userInput = fgetc(stdin)) != 'n'){
 			if(userInput == 'y'){
 				vignereFound(encryptedFile, fileSize, key, factors[i], numFactors-i);
@@ -526,8 +580,15 @@ int vignereKey(char* fileName){
 }
 
 int columnarFound(char decipheredText[], int fileSize, int key, int tries){
+	FILE* fileWriter;
 	char suffix[2];
 	tries = 10-tries;
+	
+	if(!(fileWriter = fopen("decryption.txt", "w"))){
+		printf("ERROR: Failed to open write file in columnar.\n");
+		return 1;
+	}
+
 
 	printf("\n\n\n\n\n");
 
@@ -551,11 +612,18 @@ int columnarFound(char decipheredText[], int fileSize, int key, int tries){
 
 
 	printf("Encryption Type: Columnar\nEncryption Key: %d\nThis was deciphered using the %d%c%c most likely key of 10 attempted keys\n", key, tries, suffix[0], suffix[1]);
+	printf("Time Taken: %f sec\n", ((double)(clock()-start)/CLOCKS_PER_SEC));
 	printf("An excerpt of the deciphered test:\n");
-	for(int i=0; i<fileSize && i<250; i++){
-		printf("%c", decipheredText[i]);
+	for(int i=0; i<fileSize; i++){
+		fwrite(&decipheredText[i], sizeof(char), 1, fileWriter);
+		if(i<250){
+			printf("%c", decipheredText[i]);
+		}
 	}
 	printf("\n\n\n\n\n\n");
+
+	fclose(fileWriter);
+	return 0;
 }
 
 int columnarKey(char* fileName){
@@ -647,7 +715,7 @@ int columnarKey(char* fileName){
 		for(int j=0; j<fileSize && j<100; j++){
 			printf("%c", decipher[likelyhoodOrder[i]][j]);
 		}
-		printf("\nEEDoes the above excerpt look like the cipher has been cracked?(y/n): ");
+		printf("\nDoes the above excerpt look like the cipher has been cracked?(y/n): ");
 		while((userInput = fgetc(stdin)) != 'n'){
 			if(userInput == 'y'){
 				columnarFound(decipher[likelyhoodOrder[i]], fileSize, commonMultiples[likelyhoodOrder[i]], i);
@@ -668,7 +736,7 @@ int columnarKey(char* fileName){
 		return -1;
 	}
 
-	return 0;
+	return -2;
 }
 
 int topLetters(int letterDistrobution[]){
@@ -695,6 +763,7 @@ int topLetters(int letterDistrobution[]){
 
 int identifyCrypto(float letterPerc[], int letterDistro[], char* fileName){
 	int transposition = 0;
+	int outcome = 0;
 
 	double topFivePerc = 0.0;
 
@@ -707,19 +776,18 @@ int identifyCrypto(float letterPerc[], int letterDistro[], char* fileName){
 	
 	// If top five percentages are lower than 35% it is likely not normal english distrobution
 	if(topFivePerc < .4){
-		vignereKey(fileName);
-		return 0;
+		outcome = vignereKey(fileName);
 	}
 	else if(topLetters(letterDistro)){
-		columnarKey(fileName);
-		return 0;
+		outcome = columnarKey(fileName);
 	}
 	else{
-		unshift(shiftNum(letterDistro), fileName);
-		return 0;
+		outcome = shiftNum(letterDistro, fileName);
 	}
 
-	printf("Rework the algorithm\n");
+	if(outcome == -2){
+		printf("\n\n\n\n\nThis cipher does not seem to be a Caesar, Vignere, or Columnar cipher and therefore cannot be cracked by this program.\n\n\n\n\n");
+	}
 	return 0;
 }
 
@@ -759,7 +827,6 @@ int parseCrypto(char* fileName){
 
 	for(int i=0; i<26; i++){
 		letterPercentage[i] = ((double)alphabet[i]/(double)letterCount);
-		//printf("%c: %d | %f\n", (i+65), alphabet[i], letterPercentage[i]);
 	}
 
 	sortPercentages(letterPercentage, letterDistrobution, 26);
@@ -768,42 +835,31 @@ int parseCrypto(char* fileName){
 	return 0;
 }
 
-int main(int argc, char *argv[]){
-	//parseCrypto("ciphertexts/ciphertext7.txt");
-	//parseCrypto("ciphertexts/ciphertext6.txt");	// Vignere
-	//parseCrypto("ciphertexts/ciphertext5.txt");	// Permutation
-	//parseCrypto("ciphertexts/ciphertext4.txt");	// Vignere
-	//parseCrypto("ciphertexts/ciphertext3.txt");	// Unknown
-	//parseCrypto("ciphertexts/ciphertext2.txt");	// Permutation
-	parseCrypto("ciphertexts/ciphertext1.txt");	// Shift
-	//
-	//
-	if(0){
-		FILE* filereader = fopen("ciphertexts/test.txt", "r");
-		int fileSize = 0;
-		int spaces = 0;
-		char letter;
+int decipher(void){
+	start = clock();
+	char fileName[1024];
+	int i=0;
+	int loop = 1;
 	
-		fseek(filereader, 0, SEEK_END);
-		fileSize = ftell(filereader);
-		fseek(filereader, 0, SEEK_SET);
-	
-		char text[fileSize];
-	
-		for(int i=0; i<fileSize; i++){
-			fread(&letter, sizeof(char), 1, filereader);
-			printf("%c", letter);
-			if(letter == ' ' || letter == '\n'){
-				spaces++;
-			}
-			else{
-				text[i] = toupper(letter);
-			}
+	while(loop){
+		i = 0;
+		printf("Please enter the name of the file you would like to decrypt(enter \"quit\" if you want to quit): ");
+		fgets(fileName, 1024, stdin);
+		while(fileName[0] == '\n'){
+			fgets(fileName, 1024, stdin);
 		}
+			while(fileName[i] != '\n'){
+				i++;
+			}
+			
+			fileName[i] = '\0';
 	
-		bigramCheck(text, (fileSize-spaces));
-		trigramCheck(text, fileSize-spaces);
+			if(strcmp(fileName,"quit") == 0){
+				loop = 0;
+			}
+			else{	
+				parseCrypto(fileName);
+			}
 	}
-
 	return 0;
 }
